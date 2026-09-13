@@ -8,7 +8,7 @@ AIMP (AI Mirror Project) is a local CLI for working with AI in a separate mirror
 
 ### Enable GitHub Pages
 
-After pushing this repository, open **Settings → Pages** on GitHub and set **Source** to **GitHub Actions**. Then rerun the `Deploy documentation` workflow from the **Actions** tab. If `actions/configure-pages` reports `Get Pages site failed` or `Not Found`, Pages has not been enabled for the repository yet; enabling the Actions source once in Settings resolves it.
+After pushing this repository, open **Settings → Pages** on GitHub and set **Source** to **GitHub Actions**. Then rerun the `Deploy documentation` workflow from the **Actions** tab. If `actions/configure-pages` reports `Get Pages site failed` or `Not Found`, Pages has not been enabled for the repository yet; enabling the Actions source once in Settings resolves it. A run that ends with `startup_failure` before any job appears is a GitHub runner startup issue; retry **Re-run all jobs** or use **Run workflow** after confirming the Pages source.
 
 ## Install
 
