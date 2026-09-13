@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { promises as fs } from 'node:fs';
+import path from 'node:path';
 import { Box, Text, render, useApp, useInput, useStdout } from 'ink';
 import { PassThrough } from 'node:stream';
 import { stdin, stdout } from 'node:process';
@@ -39,6 +41,13 @@ function App({ ctx, profile, onScroll, controller }) {
     Promise.all([loadState(ctx.original), branch(ctx.root)]).then(([state, name]) => { setLanguage(state?.language || 'en'); setActiveBranch(name); }).catch(e => log(e.message));
     return () => screen.off('resize', resize);
   }, [ctx, screen]);
+  useEffect(() => {
+    if (ctx.mode !== 'original') return undefined;
+    let stopped = false;
+    const poll = async () => { const state = await loadState(ctx.original).catch(() => null); for (const pair of Object.values(state?.pairs || {})) { const file = path.join(pair.mirror, '.aimp', 'sync-notification'); try { const message = await fs.readFile(file, 'utf8'); if (!stopped) log(`! Auto-sync request detected for ${pair.branch}\n${message.trim()}`); await fs.rm(file, { force: true }); } catch (error) { if (error.code !== 'ENOENT') log(`Error reading sync notification: ${error.message}`); } } };
+    const timer = globalThis.setInterval(() => { void poll(); }, 1500); void poll();
+    return () => { stopped = true; globalThis.clearInterval(timer); };
+  }, [ctx]);
   const rows = Math.max(6, size.rows - 1), width = Math.max(16, size.columns - 2), small = rows < 22;
   const showMonitor = Boolean(monitor && width >= 100 && rows >= 18);
   const leftWidth = showMonitor ? Math.floor(width * 0.65) : width;
