@@ -11,7 +11,7 @@ export async function policy(root) {
   return { content, hash: hash(content) };
 }
 export async function included(paths, rules, { includeManaged = false } = {}) {
-  const candidates = [...new Set(paths)].filter(rel => { validatePath(rel); return includeManaged || (!MANAGED.has(rel) && rel !== '.aimp' && !rel.startsWith('.aimp/')); });
+  const candidates = [...new Set(paths)].filter(rel => { if (rel === '.aimp' || rel.startsWith('.aimp/')) return false; validatePath(rel); return includeManaged || !MANAGED.has(rel); });
   if (!candidates.length || !rules.content.length) return candidates;
   const temp = await fs.mkdtemp(path.join(os.tmpdir(), 'aimp-policy-'));
   try {
