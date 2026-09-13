@@ -6,6 +6,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
+import { spawn } from 'node:child_process';
 import { git, text, branch, status, metrics, names } from './core/git.js';
 import { canonical } from './core/files.js';
 import { loadState, saveState, stateRoot, findMirror, withLock, loadJournal, migrate, newState } from './core/state.js';
@@ -264,6 +265,10 @@ export async function main(argv = process.argv.slice(2)) {
     console.log(`AIMP watcher active (${state.config.watcher.intervalMs}ms). Ctrl+C to stop.`);
     const controller = new AbortController(), stop = () => controller.abort(); process.on('SIGINT', stop);
     try { while (!controller.signal.aborted) { const current = await loadState(ctx.original); for (const pair of Object.values(current?.pairs || {})) { const request = path.join(pair.mirror, '.aimp', 'sync-request.json'); if (!await fs.stat(request).catch(() => null)) continue; const raw = JSON.parse(await fs.readFile(request, 'utf8')); if (raw.type !== 'sync-to-original' || raw.branch !== pair.branch || raw.batchId !== pair.batch) continue; const session = createSession(ctx, { signal: controller.signal, output: console.log, prompt: async () => 'y' }); try { await session.execute('/sync'); await fs.rm(request, { force: true }); } catch (error) { console.error(`Auto-sync paused: ${error.message}`); } } await new Promise(resolve => setTimeout(resolve, current?.config?.watcher?.intervalMs || 2000)); } } finally { process.off('SIGINT', stop); } return;
+  }
+  const configuredState = await loadState(ctx.original);
+  if (ctx.mode === 'original' && configuredState?.config?.autoSync?.enabled && configuredState.config.watcher.enabled && !argv.includes('--plain')) {
+    const watcher = spawn(process.execPath, [process.argv[1], '--watch'], { cwd: ctx.original, detached: true, stdio: 'ignore' }); watcher.unref();
   }
   const args = argv.filter(a => !['--plain', '--profile'].includes(a));
   if (!plain && !args.length) { const { runInk } = await import('./ui.js'); await runInk({ ctx, profile }); return; }
