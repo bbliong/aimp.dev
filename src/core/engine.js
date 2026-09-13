@@ -109,7 +109,7 @@ async function replaceIndex(root, tx, dir) {
 export async function preparePlan(root, state, direction = 'ai-to-original') {
   const pair = await requirePair(root, state), rules = await policy(root);
   if (pair.baselineNeedsReview) throw new Error('Migrated baseline needs review. Run /adopt-baseline after inspecting both repositories.');
-  if (pair.policyHash && pair.policyHash !== rules.hash) throw new Error('Ignore policy changed. Run /adopt-policy to review and accept it first.');
+  if (direction !== 'original-to-ai' && pair.policyHash && pair.policyHash !== rules.hash) throw new Error('Ignore policy changed. Run /adopt-policy to review and accept it first.');
   const detected = await changes(pair.mirror, pair, rules);
   let files = detected.changes;
   if (direction === 'original-to-ai') {
@@ -117,11 +117,14 @@ export async function preparePlan(root, state, direction = 'ai-to-original') {
     if (files.length) throw new Error('Mirror has pending work. Sync or serialize it first.');
     const originalBase = pair.baselineOriginal;
     if (!originalBase || (await git(root, ['merge-base', '--is-ancestor', originalBase, 'HEAD'], { allowFailure: true })).code !== 0) throw new Error('Original baseline history changed. Reinitialize after review.');
-    const candidates = await included([...await names(root, ['diff', '--no-ext-diff', '--no-renames', '--name-only', '-z', originalBase, 'HEAD']), ...Object.keys(pair.applied || {})], rules);
+    const originalPaths = await names(root, ['ls-files', '-z']);
+    const mirrorPaths = await names(pair.mirror, ['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
+    const candidates = [...new Set([...originalPaths, ...mirrorPaths, ...Object.keys(pair.applied || {})])];
     await guardAttributes(root, candidates);
     files = [];
     for (const rel of candidates) {
-      const after = await fingerprint(root, rel), before = await fingerprint(pair.mirror, rel);
+      const includedPath = (await included([rel], rules)).length > 0;
+      const after = includedPath ? await fingerprint(root, rel) : null, before = await fingerprint(pair.mirror, rel);
       if (!equal(after, before)) files.push({ path: rel, after, kind: !after ? 'deleted' : !before ? 'added' : 'modified' });
     }
   }

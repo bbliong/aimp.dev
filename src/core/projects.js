@@ -9,7 +9,8 @@ import { changes, createCheckpoint, writeMetadata, validateRepository } from './
 
 export async function initialize(root, state, target, { confirm, replacing = false, signal } = {}) {
   await validateRepository(root);
-  if ((await status(root)).length) throw new Error('Original must be clean before initialization.');
+  const dirty = (await status(root)).filter(entry => entry.path !== '.aimpignore');
+  if (dirty.length) throw new Error('Original must be clean before initialization.');
   const name = await branch(root), originalHead = await head(root);
   target = await mirrorTarget(root, target, stateRoot());
   const owner = await findMirror(target);

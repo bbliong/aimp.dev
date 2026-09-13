@@ -6,7 +6,7 @@ import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
 import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
-import { git, text, branch, status, metrics } from './core/git.js';
+import { git, text, branch, status, metrics, names } from './core/git.js';
 import { canonical } from './core/files.js';
 import { loadState, saveState, stateRoot, findMirror, withLock, loadJournal, migrate, newState } from './core/state.js';
 import { policy } from './core/policy.js';
@@ -122,6 +122,19 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         const fallback = existing?.mirror || path.resolve(ctx.original, '..', `${path.basename(ctx.original)}-ai`);
         const requested = tokens[0] || (await prompt(t(`Mirror folder [${fallback}]: `, `Folder mirror [${fallback}]: `), { kind: 'path' })).trim() || fallback;
         const destination = requested.startsWith('~/') ? path.join(os.homedir(), requested.slice(2)) : requested;
+        if (name === '/init' && !tokens[0]) {
+          const existingRules = await policy(ctx.original);
+          const candidates = (await names(ctx.original, ['ls-files', '-z'])).filter(rel => /(^|\/)(\.env(?:\.|$)|.*(?:credential|secret|password|private|settings_local|local_settings).*)/i.test(rel)).slice(0, 40);
+          const hint = candidates.length ? `\n${candidates.map(rel => `- ${rel}`).join('\n')}` : '';
+          const answer = (await prompt(t(`Ignore paths (comma-separated; blank keeps current policy):${hint}\n> `, `Path yang di-ignore (pisahkan koma; kosong mempertahankan policy):${hint}\n> `), { kind: 'text' })).trim();
+          const selected = answer.split(',').map(value => value.trim()).filter(value => value && value !== 'y' && value !== 'Y');
+          if (selected.length && await confirm(t(`Create/update .aimpignore with ${selected.length} path pattern(s)?`, `Buat/perbarui .aimpignore dengan ${selected.length} pola path?`))) {
+            const current = existingRules.content.toString('utf8').trimEnd();
+            const additions = selected.filter(value => !current.split('\n').includes(value));
+            if (additions.length) await fs.writeFile(path.join(ctx.original, '.aimpignore'), `${current ? `${current}\n` : ''}${additions.join('\n')}\n`);
+            emit(t(`.aimpignore updated (${additions.length} new pattern(s)).`, `.aimpignore diperbarui (${additions.length} pola baru).`));
+          }
+        }
         const created = await initialize(ctx.original, state, destination, { confirm, replacing: name === '/reinit', signal });
         if (created) emit(`Mirror: ${created.mirror}${created.backup ? `\nBackup: ${created.backup}` : ''}`);
         return {};
