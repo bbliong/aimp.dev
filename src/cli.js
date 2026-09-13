@@ -142,13 +142,14 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       }
       if (name === '/status') {
         const info = await inspect(ctx, state);
-        emit(tokens.includes('--json') ? JSON.stringify(info) : `Original: ${info.original}\nBranch: ${info.branch}\nAI copy: ${info.mirror || '—'}\nAI branch: ${info.mirrorBranch || '—'}\nOriginal dirty: ${info.originalDirty}\nAI pending: ${info.aiPending}\nCommitted paths since baseline: ${info.committedPaths}\nState: ${info.state}\n${info.files.join('\n')}`);
+        emit(tokens.includes('--json') ? JSON.stringify(info) : `PROJECT\n  Original     ${info.original}\n  AI mirror    ${info.mirror || '—'}\n  Branch       ${info.branch}\n  AI branch    ${info.mirrorBranch || '—'}\n\nHEALTH\n  Original     ${info.originalDirty ? 'dirty' : 'clean'}\n  AI mirror    ${info.aiPending ? 'pending' : 'clean'}\n  Baseline     ${info.committedPaths} committed path(s)\n  State        ${info.state}\n\nCHANGES\n${info.files.length ? `  TYPE  PATH\n${info.files.map(line => `  ${line.replace('\t', '  ')}`).join('\n')}` : '  No changes'}`);
         return { monitor: info };
       }
       if (name === '/doctor') {
         const checks = { node: process.version, git: await text(ctx.root, ['--version']), stateRoot: stateRoot(), schema: state?.schemaVersion || null, platform: process.platform, sandbox: false };
         try { await validateRepository(ctx.original); checks.original = 'ok'; if (state && Object.keys(state.pairs).length) await requirePair(ctx.original, state); checks.pair = 'ok'; } catch (e) { checks.problem = e.message; }
-        checks.recoveryRequired = Boolean(await loadJournal(ctx.original)); emit(JSON.stringify(checks, null, 2)); return {};
+        checks.recoveryRequired = Boolean(await loadJournal(ctx.original));
+        emit(`DOCTOR\n  ${checks.original === 'ok' ? '✓' : '✗'} Original repository\n  ${checks.pair === 'ok' ? '✓' : '✗'} Mirror pairing\n  ${checks.recoveryRequired ? '!' : '✓'} Recovery journal\n  ${checks.problem ? `✗ ${checks.problem}` : '✓ Ready'}\n\nDETAILS\n  Node         ${checks.node}\n  Git          ${checks.git.trim()}\n  Schema       ${checks.schema || '—'}\n  Platform     ${checks.platform}`); return {};
       }
       if (name === '/list') { emit(Object.entries(state?.pairs || {}).map(([b, p]) => `${b}\t${p.mirror}`).join('\n') || t('No mirrors.', 'Belum ada mirror.')); return {}; }
       if (name === '/log') { emit(JSON.stringify(state?.history || [], null, 2)); return {}; }
@@ -178,7 +179,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       if (name === '/get-summary' || name === '/get-commit-message') { const report = await readReport(pair.mirror, pair, state.projectId); emit(name === '/get-summary' ? report.summary : report.message); return {}; }
       if (name === '/diff') {
         const result = await changes(pair.mirror, pair, await policy(ctx.original));
-        emit(result.changes.map(e => `${e.kind}\t${JSON.stringify(e.path)}`).join('\n') || t('No changes.', 'Tidak ada perubahan.'));
+        emit(result.changes.length ? `TYPE  PATH\n${result.changes.map(e => `${e.kind.padEnd(5)} ${JSON.stringify(e.path)}`).join('\n')}` : t('No changes.', 'Tidak ada perubahan.'));
         for (const entry of result.changes) {
           if ((entry.after?.size || 0) > 1024 * 1024) { emit(`${JSON.stringify(entry.path)}: large file; review externally.`); continue; }
           emit((await git(pair.mirror, ['diff', '--no-ext-diff', '--no-textconv', pair.baselineAi, '--', entry.path])).stdout.toString('utf8'));
