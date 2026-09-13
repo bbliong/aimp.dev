@@ -114,6 +114,13 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         if (!tokens.includes('--force') && (await prompt('', { kind: 'confirm' })).trim().toLowerCase() !== 'y') return {};
         const ask = async (message, current) => { const value = (await prompt(`${message} [${current}] `, { kind: 'text' })).trim(); return value || current; };
         const bool = value => ['y', 'yes', 'true', '1', 'on', 'enabled'].includes(String(value).toLowerCase());
+        const policyFile = await policy(ctx.original), tracked = (await names(ctx.original, ['ls-files', '-z'])).filter(rel => !rel.startsWith('.aimp/'));
+        const search = await ask(t('Ignore policy search (blank skips)', 'Cari file untuk di-ignore (kosong melewati)'), '');
+        if (search) {
+          const selected = tracked.filter(rel => rel.toLowerCase().includes(search.toLowerCase())).slice(0, 100);
+          emit(selected.length ? `IGNORE CANDIDATES\n${selected.map((rel, i) => `${i + 1}. ${policyFile.content.toString('utf8').split('\n').includes(rel) ? '[x]' : '[ ]'} ${rel}`).join('\n')}` : t('No matching files.', 'Tidak ada file yang cocok.'));
+          if (selected.length) { const choices = (await prompt(t('Select numbers separated by comma (blank keeps current)', 'Pilih nomor dipisahkan koma (kosong mempertahankan)'), { kind: 'text' })).split(',').map(value => Number(value.trim())).filter(value => Number.isInteger(value) && value > 0 && value <= selected.length); const currentRules = policyFile.content.toString('utf8').trimEnd(); const additions = [...new Set(choices.map(index => selected[index - 1]))].filter(rel => !currentRules.split('\n').includes(rel)); if (additions.length) await fs.writeFile(path.join(ctx.original, '.aimpignore'), `${currentRules ? `${currentRules}\n` : ''}${additions.join('\n')}\n`); }
+        }
         const urls = await ask(t('Test URLs (comma-separated, blank keeps current)', 'URL test (pisahkan koma, kosong tidak mengubah)'), state.config.testUrls.allowlist.join(', '));
         if (urls !== state.config.testUrls.allowlist.join(', ')) { const parsed = urls.split(',').map(value => value.trim()).filter(Boolean); for (const value of parsed) { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`Unsupported test URL protocol: ${url.protocol}`); } state.config.testUrls.allowlist = parsed; state.config.testUrls.enabled = parsed.length > 0; }
         state.config.autoSync.enabled = bool(await ask(t('Enable request-based auto-sync? (y/n)', 'Aktifkan auto-sync berbasis request? (y/n)'), state.config.autoSync.enabled ? 'y' : 'n'));
