@@ -179,7 +179,13 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         const safeBranch = pair.branch.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^\.+|\.+$/g, '') || 'default';
         const dir = path.join(stateRoot(), 'reports', safeBranch);
         let entries = []; try { entries = (await fs.readdir(dir)).sort().reverse(); } catch (error) { if (error.code !== 'ENOENT') throw error; }
-        emit(entries.join('\n') || t('No archived reports.', 'Belum ada laporan yang diarsipkan.')); return {};
+        if (!entries.length) { emit(t('No archived reports.', 'Belum ada laporan yang diarsipkan.')); return {}; }
+        if (tokens.length) {
+          const requested = tokens.includes('--last') ? entries.slice(0, Math.max(1, Number(tokens[tokens.indexOf('--last') + 1]) || 1)) : [tokens[0]];
+          for (const entry of requested) { if (!/^[a-zA-Z0-9._-]+\.md$/.test(entry) || !entries.includes(entry)) throw new Error(`Unknown history report: ${entry}`); emit(`--- ${entry} ---\n${await fs.readFile(path.join(dir, entry), 'utf8')}`); }
+          return {};
+        }
+        emit(`${entries.join('\n')}\n\n${t('Use /history --last 1 or /history <filename> for details.', 'Gunakan /history --last 1 atau /history <filename> untuk detail.')}`); return {};
       }
       if (name === '/use') { const pair = await useBranch(ctx.original, state); emit(`${pair.branch} → ${pair.mirror}`); return {}; }
       const b = await branch(ctx.root), pair = state?.pairs?.[b];
