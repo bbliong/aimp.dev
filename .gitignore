@@ -1,0 +1,7 @@
+node_modules/
+npm-debug.log*
+*.tgz
+.DS_Store
+
+# Local test and workspace artifacts
+.aimp/

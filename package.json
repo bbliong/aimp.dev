@@ -1,0 +1,62 @@
+{
+  "name": "@bbliong/aimp",
+  "version": "0.2.0-beta.1",
+  "description": "Never trust AI with your codebase. Let it touch only the mirror.",
+  "type": "module",
+  "bin": {
+    "aimp": "bin/aimp.js"
+  },
+  "files": [
+    "src",
+    "bin",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "docs/USAGE_ID.md",
+    "docs/RELEASE.md"
+  ],
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "start": "node bin/aimp.js",
+    "test": "node --test test/*.test.js",
+    "lint": "eslint src bin test scripts --max-warnings=0",
+    "typecheck": "tsc -p tsconfig.json",
+    "test:terminal": "python3 scripts/terminal-test.py",
+    "test:package": "node scripts/package-test.js",
+    "bench": "node scripts/benchmark.js",
+    "verify": "npm run lint && npm run typecheck && npm test && npm run test:terminal && npm run test:package",
+    "prepublishOnly": "npm run verify && node scripts/release-check.js"
+  },
+  "keywords": [
+    "ai",
+    "git",
+    "cli",
+    "workflow"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bbliong/aimp.dev.git"
+  },
+  "bugs": {
+    "url": "https://github.com/bbliong/aimp.dev/issues"
+  },
+  "homepage": "https://github.com/bbliong/aimp.dev#readme",
+  "dependencies": {
+    "ink": "^5.2.1",
+    "react": "^18.3.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.2",
+    "eslint": "^10.10.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "beta"
+  }
+}
