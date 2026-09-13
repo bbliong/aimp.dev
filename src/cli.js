@@ -92,6 +92,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
     const started = performance.now(), calls = metrics.calls, gitTime = metrics.milliseconds;
     let state = await loadState(ctx.original), language = state?.language || 'en';
     const t = (en, id) => localized(language, en, id);
+    let postConfigure = false;
     const confirm = async message => (await prompt(`${message} [y/N] `, { kind: 'confirm' })).trim().toLowerCase() === 'y';
     const allowed = ctx.mode === 'mirror' ? mirrorCommands : originalCommands;
     if (name === '/exit' || name === '/quit') return { exit: true };
@@ -110,7 +111,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       if (name === '/configure') {
         state ||= newState(ctx.original); const defaults = newState(ctx.original).config; state.config = { ...defaults, ...state.config, mirror: { ...defaults.mirror, ...state.config?.mirror }, sync: { ...defaults.sync, ...state.config?.sync }, autoSync: { ...defaults.autoSync, ...state.config?.autoSync }, testUrls: { ...defaults.testUrls, ...state.config?.testUrls }, sandbox: { ...defaults.sandbox, ...state.config?.sandbox }, history: { ...defaults.history, ...state.config?.history }, ui: { ...defaults.ui, ...state.config?.ui }, safety: { ...defaults.safety, ...state.config?.safety } };
         emit(`CURRENT SETTINGS\n\n  Mirror\n    Branch pairing          ${state.config.mirror.branchPairing}\n  Ignore policy\n    Source                  .aimpignore\n  Sync behavior\n    Confirm overwrite       ${state.config.sync.confirmOverwrite ? 'yes' : 'no'}\n    Confirm deletion        ${state.config.sync.confirmDeletion ? 'yes' : 'no'}\n  Auto sync trigger\n    Mode                    ${state.config.autoSync.enabled ? 'request-enabled' : 'disabled'}\n  Test URLs\n    Enabled                 ${state.config.testUrls.enabled ? 'yes' : 'no'}\n    Allowlist               ${state.config.testUrls.allowlist.join(', ') || '(none)'}\n  Sandbox integration\n    Required                ${state.config.sandbox.required ? 'yes' : 'no'}\n    Detect                  ${state.config.sandbox.detect ? 'yes' : 'no'}\n  Watcher\n    Enabled                 ${state.config.autoSync.enabled ? 'yes' : 'no'}\n    Interval                ${state.config.autoSync.intervalMs} ms\n  Reports & history\n    Enabled                 ${state.config.history.enabled ? 'yes' : 'no'}\n    Retention               ${state.config.history.retention}\n  Language & interface\n    Language                ${language}\n    Color                   ${state.config.ui.color ? 'yes' : 'no'}\n  Safety checks\n    Clean original          ${state.config.safety.requireCleanOriginal ? 'required' : 'optional'}\n\n${t('Do you want to reconfigure? [y/N]', 'Apakah ingin mengatur ulang? [y/N]')}`);
-        if ((await prompt('', { kind: 'confirm' })).trim().toLowerCase() !== 'y') return {};
+        if (!tokens.includes('--force') && (await prompt('', { kind: 'confirm' })).trim().toLowerCase() !== 'y') return {};
         const ask = async (message, current) => { const value = (await prompt(`${message} [${current}] `, { kind: 'text' })).trim(); return value || current; };
         const bool = value => ['y', 'yes', 'true', '1', 'on', 'enabled'].includes(String(value).toLowerCase());
         const urls = await ask(t('Test URLs (comma-separated, blank keeps current)', 'URL test (pisahkan koma, kosong tidak mengubah)'), state.config.testUrls.allowlist.join(', '));
@@ -168,7 +169,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
           }
         }
         const created = await initialize(ctx.original, state, destination, { confirm, replacing: name === '/reinit', signal });
-        if (created) emit(`Mirror: ${created.mirror}${created.backup ? `\nBackup: ${created.backup}` : ''}`);
+        if (created) { emit(`Mirror: ${created.mirror}${created.backup ? `\nBackup: ${created.backup}` : ''}`); if (name === '/init' && await confirm(t('Open advanced configuration now?', 'Buka konfigurasi lanjutan sekarang?'))) postConfigure = true; }
         return {};
       }
       if (name === '/status') {
@@ -256,7 +257,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       }
       return {};
     };
-    try { return mutating ? await withLock(ctx.original, run) : await run(); }
+    try { const result = mutating ? await withLock(ctx.original, run) : await run(); if (postConfigure) await execute(['/configure', '--force']); return result; }
     finally { if (profile) emit(JSON.stringify({ profile: name, machineAndPromptMs: Math.round(performance.now() - started), gitCalls: metrics.calls - calls, gitMs: Math.round(metrics.milliseconds - gitTime) })); }
   }
   return { execute, context: ctx, commands: ctx.mode === 'mirror' ? mirrorCommands : originalCommands };
