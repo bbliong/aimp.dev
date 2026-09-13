@@ -15,7 +15,7 @@ import { requirePair, changes, preparePlan, readReport, transact, recover, valid
 import { initialize, recoverInitialization, useBranch } from './core/projects.js';
 
 const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
-export const originalCommands = ['/init', '/reinit', '/use', '/configure', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/history', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
+export const originalCommands = ['/init', '/reinit', '/use', '/configure', '/delete-mirror', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/history', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
 export const mirrorCommands = ['/serialize', '/configure', '/status', '/diff', '/get-summary', '/get-commit-message', '/history', '/language', '/help', '/exit'];
 export const safeText = value => String(value).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, c => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
 const descriptions = {
@@ -23,6 +23,7 @@ const descriptions = {
   '/reinit': ['Replace or relocate the shared mirror, retaining a backup.', 'Ganti atau pindahkan mirror bersama, dengan backup.'],
   '/use': ['Explicitly switch the mirror to the original branch.', 'Pindahkan mirror ke branch original secara eksplisit.'],
   '/configure': ['Configure safe sync, test URL and history settings.', 'Atur sync aman, URL test, dan history.'],
+  '/delete-mirror': ['Delete the active AI mirror after review and confirmation.', 'Hapus mirror AI aktif setelah review dan konfirmasi.'],
   '/status': ['Inspect paths, branches, working changes, and pending commits.', 'Periksa folder, branch, perubahan file, dan commit pending.'],
   '/diff': ['Preview changed paths and text diff; no file writes.', 'Preview path dan diff teks; tanpa menulis file.'],
   '/sync': ['Review AI changes, apply to original, checkpoint AI only.', 'Review perubahan AI, terapkan ke original, checkpoint hanya AI.'],
@@ -96,7 +97,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
     if (name === '/exit' || name === '/quit') return { exit: true };
     if (name === '/help') { emit(allowed.map(k => `${k.padEnd(24)} ${descriptions[k][language === 'id' ? 1 : 0]}`).join('\n')); return {}; }
     if (!allowed.includes(name)) throw new Error(name === '/resolve' ? 'Automatic merge was removed. Review and edit files manually before /sync.' : `Command unavailable in ${ctx.mode} mode: ${name}`);
-    const mutating = ['/init', '/reinit', '/use', '/configure', '/sync', '/sync-original-to-ai', '/serialize', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language'].includes(name) && !tokens.includes('--dry-run');
+    const mutating = ['/init', '/reinit', '/use', '/configure', '/delete-mirror', '/sync', '/sync-original-to-ai', '/serialize', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language'].includes(name) && !tokens.includes('--dry-run');
     const run = async () => {
       // Always reload after taking the project lock.
       state = await loadState(ctx.original); language = state?.language || 'en';
@@ -123,6 +124,16 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         await saveState(ctx.original, state);
         const activePair = state.pairs[await branch(ctx.original)]; if (activePair) await writeMetadata(activePair.mirror, state.projectId, activePair, state.config);
         emit(t('Configuration saved. AGENTS-AIMP.md updated for the mirror.', 'Konfigurasi tersimpan. AGENTS-AIMP.md di mirror diperbarui.')); return { config: state.config };
+      }
+      if (name === '/delete-mirror') {
+        const active = state?.pairs?.[await branch(ctx.original)];
+        if (!active) throw new Error('No mirror is configured for the current branch.');
+        const pending = (await changes(active.mirror, active, await policy(ctx.original))).changes;
+        if (pending.length) throw new Error('Mirror has pending work. Sync or serialize it before deletion.');
+        emit(`Mirror to delete:\n${active.mirror}`);
+        if (!await confirm(t('Delete this mirror permanently?', 'Hapus mirror ini secara permanen?'))) return {};
+        await fs.rm(active.mirror, { recursive: true, force: true }); delete state.pairs[active.branch]; await saveState(ctx.original, state);
+        emit(t('Mirror deleted. Original project was not changed.', 'Mirror dihapus. Project original tidak diubah.')); return {};
       }
       if (name === '/migrate') {
         if (!state || state.schemaVersion === 3) { emit(t('State is current.', 'State sudah terbaru.')); return {}; }
