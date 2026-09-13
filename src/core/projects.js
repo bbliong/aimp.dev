@@ -51,7 +51,7 @@ export async function initialize(root, state, target, { confirm, replacing = fal
     const pair = { branch: name, mirror: target, baselineAi: commit, baselineOriginal: originalHead,
       policyHash: rules.hash, batch: crypto.randomUUID(), acknowledgements: {}, applied: {} };
     await writeMetadata(stage, state.projectId, pair, state.config);
-    await fs.writeFile(path.join(stage, '.git/info/exclude'), '/AIMP_REPORT.md\n/AGENTS-AIMP.md\n/.aimpignore\n');
+    await fs.writeFile(path.join(stage, '.git/info/exclude'), '/AIMP_REPORT.md\n/AGENTS-AIMP.md\n/.aimpignore\n/.aimp/\n');
     if (rules.content.length) await fs.writeFile(path.join(stage, '.aimpignore'), rules.content);
     if (existing && !replacing) {
       // Transfer only the freshly created mirror commit, never original Git history.
