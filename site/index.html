@@ -11,7 +11,7 @@
 <div class="shell">
 <header class="topbar">
 <a class="brand" href="#top"><span class="prompt">$</span> aimp<span class="cursor">_</span></a>
-<nav aria-label="Primary navigation"><a href="#quick-start">Quick start</a><a href="#commands">Commands</a><a href="#workflow">Workflow</a><a href="https://github.com/bbliong/aimp.dev">GitHub ↗</a></nav>
+<nav aria-label="Primary navigation"><a href="#demo">Live demo</a><a href="#quick-start">Quick start</a><a href="#commands">Commands</a><a href="#workflow">Workflow</a><a href="https://github.com/bbliong/aimp.dev">GitHub ↗</a></nav>
 </header>
 <main id="top">
 <section class="hero">
@@ -30,6 +30,17 @@
 <article class="boundary-card mirror"><div class="card-top"><span class="dot"></span><span>AI MIRROR</span><span class="status">isolated</span></div><code>~/ai-mirrors/shop-api-ai</code><ul><li>AI edits this independent Git repo</li><li>Placeholders replace excluded files</li><li>Every sync creates a local checkpoint</li></ul></article>
 </div>
 <p class="muted note"><span class="accent">●</span> AIMP never calls a model, runs your application, creates a commit in the original, or pushes to a remote.</p>
+</section>
+
+<section id="demo" class="section demo-section" data-demo-section aria-labelledby="demo-title">
+<div class="section-heading"><p class="eyebrow">LIVE WALKTHROUGH · SIMULATED</p><h2 id="demo-title">Watch one AI change cross the boundary</h2><p>Two terminals. One command at a time. The AI edits the mirror, you inspect the batch, and only your confirmation updates the original.</p></div>
+<div class="demo-toolbar" role="toolbar" aria-label="Demo controls"><button class="demo-control primary" type="button" data-demo-action="toggle">Pause</button><button class="demo-control" type="button" data-demo-action="next">Next step</button><button class="demo-control" type="button" data-demo-action="replay">Replay</button><label class="demo-speed">Speed <select data-demo-speed aria-label="Demo speed"><option value="1">1×</option><option value="2">2×</option></select></label><span class="demo-progress" data-demo-progress aria-live="polite">Step 1 / 12</span></div>
+<div class="demo-grid">
+<article class="demo-terminal" data-demo-terminal="original" aria-label="Original project terminal"><div class="demo-terminal-head"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><strong>ORIGINAL PROJECT</strong><span class="demo-path">~/projects/shop-api</span></div><div class="demo-screen" data-demo-screen="original" aria-live="polite"></div><div class="demo-file"><div class="demo-file-head"><span>checkout/tax.py</span><span data-demo-file-state="original">original</span></div><pre data-demo-code="original"></pre></div></article>
+<article class="demo-terminal" data-demo-terminal="mirror" aria-label="AI mirror terminal"><div class="demo-terminal-head"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><strong>AI MIRROR</strong><span class="demo-path">~/ai-mirrors/shop-api-ai</span></div><div class="demo-screen" data-demo-screen="mirror" aria-live="polite"></div><div class="demo-file"><div class="demo-file-head"><span>checkout/tax.py</span><span data-demo-file-state="mirror">baseline</span></div><pre data-demo-code="mirror"></pre></div></article>
+</div>
+<div class="demo-caption" data-demo-caption aria-live="polite">AIMP starts from a clean original branch.</div>
+<noscript><p class="callout">JavaScript is disabled. Read the full command-by-command workflow in the <a href="./README.md">README</a>.</p></noscript>
 </section>
 
 <section id="quick-start" class="section" aria-labelledby="quick-title">
@@ -153,5 +164,6 @@ aimp --version</code></pre><div><p><strong>Requirements:</strong> Node.js 22.14+
 </main>
 <footer class="footer"><span>AIMP · AI Mirror Project</span><span>Local first · reviewed sync · no original commit</span></footer>
 </div>
+<script src="./demo.js" defer></script>
 </body>
 </html>
