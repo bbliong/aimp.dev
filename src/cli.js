@@ -122,7 +122,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         const fallback = existing?.mirror || path.resolve(ctx.original, '..', `${path.basename(ctx.original)}-ai`);
         const requested = tokens[0] || (await prompt(t(`Mirror folder [${fallback}]: `, `Folder mirror [${fallback}]: `), { kind: 'path' })).trim() || fallback;
         const destination = requested.startsWith('~/') ? path.join(os.homedir(), requested.slice(2)) : requested;
-        if (name === '/init' && !tokens[0]) {
+        if (name === '/init') {
           const existingRules = await policy(ctx.original);
           const candidates = (await names(ctx.original, ['ls-files', '-z'])).filter(rel => /(^|\/)(\.env(?:\.|$)|.*(?:credential|secret|password|private|settings_local|local_settings).*)/i.test(rel)).slice(0, 40);
           const hint = candidates.length ? `\n${candidates.map(rel => `- ${rel}`).join('\n')}` : '';
