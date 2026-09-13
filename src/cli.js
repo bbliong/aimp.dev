@@ -247,9 +247,24 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
 export async function main(argv = process.argv.slice(2)) {
   if (argv.includes('--version') || argv.includes('-v')) { console.log(`aimp ${pkg.version}`); return; }
   if (argv.includes('--help') || argv.includes('-h')) {
-    console.log('aimp — manual AI project mirror\nUsage: aimp [--plain] [--profile]\n       aimp status --json\n       aimp sync --dry-run\n\n' + originalCommands.map(c => `${c.padEnd(24)} ${descriptions[c][0]}`).join('\n')); return;
+    console.log('aimp — manual AI project mirror\nUsage: aimp [--plain] [--profile]\n       aimp status --json\n       aimp sync --dry-run\n       aimp --watch\n       aimp --sync-to-original\n\n' + originalCommands.map(c => `${c.padEnd(24)} ${descriptions[c][0]}`).join('\n')); return;
   }
   const ctx = await context(process.cwd()), plain = argv.includes('--plain') || !stdin.isTTY || !stdout.isTTY, profile = argv.includes('--profile');
+  if (argv.includes('--sync-to-original')) {
+    if (ctx.mode !== 'mirror') throw new Error('--sync-to-original must be run inside the AI mirror.');
+    const state = await loadState(ctx.original), pair = state?.pairs?.[await branch(ctx.root)];
+    if (!pair || !state.config?.autoSync?.enabled) throw new Error('Request auto-sync is disabled. Run /configure in the original first.');
+    const requestDir = path.join(ctx.root, '.aimp'); await fs.mkdir(requestDir, { recursive: true, mode: 0o700 });
+    await fs.writeFile(path.join(requestDir, 'sync-request.json'), JSON.stringify({ type: 'sync-to-original', branch: pair.branch, batchId: pair.batch, createdAt: new Date().toISOString() }, null, 2), { mode: 0o600 });
+    console.log('Sync request created. AIMP watcher in the original will process it.'); return;
+  }
+  if (argv.includes('--watch')) {
+    if (ctx.mode === 'mirror') throw new Error('--watch must be run from the original project.');
+    const state = await loadState(ctx.original); if (!state?.config?.autoSync?.enabled || !state.config.watcher.enabled) throw new Error('Auto-sync and watcher must be enabled with /configure.');
+    console.log(`AIMP watcher active (${state.config.watcher.intervalMs}ms). Ctrl+C to stop.`);
+    const controller = new AbortController(), stop = () => controller.abort(); process.on('SIGINT', stop);
+    try { while (!controller.signal.aborted) { const current = await loadState(ctx.original); for (const pair of Object.values(current?.pairs || {})) { const request = path.join(pair.mirror, '.aimp', 'sync-request.json'); if (!await fs.stat(request).catch(() => null)) continue; const raw = JSON.parse(await fs.readFile(request, 'utf8')); if (raw.type !== 'sync-to-original' || raw.branch !== pair.branch || raw.batchId !== pair.batch) continue; const session = createSession(ctx, { signal: controller.signal, output: console.log, prompt: async () => 'y' }); try { await session.execute('/sync'); await fs.rm(request, { force: true }); } catch (error) { console.error(`Auto-sync paused: ${error.message}`); } } await new Promise(resolve => setTimeout(resolve, current?.config?.watcher?.intervalMs || 2000)); } } finally { process.off('SIGINT', stop); } return;
+  }
   const args = argv.filter(a => !['--plain', '--profile'].includes(a));
   if (!plain && !args.length) { const { runInk } = await import('./ui.js'); await runInk({ ctx, profile }); return; }
   const rl = stdin.isTTY ? createInterface({ input: stdin, output: stdout }) : null;
