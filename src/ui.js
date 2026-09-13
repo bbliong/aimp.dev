@@ -85,7 +85,7 @@ function App({ ctx, profile, onScroll, controller }) {
     if (busyRef.current && !pendingRef.current) return;
     if (key.return) { void submit(); return; }
     if (key.tab) {
-      if (pending && pending.kind !== 'path') return;
+      if (pending && !['path', 'text'].includes(pending.kind)) return;
       if (completion.current) {
         const cycle = completion.current; cycle.index = (cycle.index + (key.shift ? -1 : 1) + cycle.matches.length) % cycle.matches.length;
         setValue(cycle.matches[cycle.index]); return;

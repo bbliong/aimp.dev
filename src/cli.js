@@ -61,7 +61,7 @@ export function tokenize(value) {
 export async function pathCompleter(value) {
   const expanded = value.startsWith('~/') ? path.join(os.homedir(), value.slice(2)) : value;
   const slash = expanded.lastIndexOf('/'), dir = slash < 0 ? '.' : expanded.slice(0, slash + 1), prefix = expanded.slice(slash + 1);
-  try { const entries = await fs.readdir(dir, { withFileTypes: true }); return [entries.filter(e => e.isDirectory() && e.name.startsWith(prefix)).map(e => `${slash < 0 ? '' : dir}${e.name}/`).sort(), value]; }
+  try { const entries = await fs.readdir(dir, { withFileTypes: true }); return [entries.filter(e => e.name.startsWith(prefix)).map(e => `${slash < 0 ? '' : dir}${e.name}${e.isDirectory() ? '/' : ''}`).sort(), value]; }
   catch { return [[], value]; }
 }
 export async function context(start) {
