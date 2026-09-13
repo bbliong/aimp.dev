@@ -17,8 +17,8 @@
 
   const steps = [
     { side: 'original', command: 'aimp', output: ['AIMP · AI Mirror Project', 'Original detected: ~/projects/shop-api'], caption: 'AIMP opens beside the original project.' },
-    { side: 'original', command: '/init', output: ['Branch: feature/checkout-tax', 'Mirror created: ~/ai-mirrors/shop-api-ai'], caption: 'A separate Git repository is created for the active branch.' },
-    { side: 'mirror', command: 'codex', output: ['AI harness connected to the mirror', 'AGENTS-AIMP.md loaded'], caption: 'The AI starts inside the mirror. It has no reason to open the original.' },
+    { side: 'original', command: '/init', output: ['Branch: feature/checkout-tax', 'Mirror created: ~/ai-mirrors/shop-api-ai', 'Created: AGENTS-AIMP.md', 'Created: AIMP_REPORT.md'], caption: 'A separate Git repository is created with two AIMP control files: rules for the AI and a report for your review.' },
+    { side: 'mirror', command: 'codex', output: ['AI harness connected to the mirror', 'AGENTS-AIMP.md loaded', 'Read and edit only this workspace'], caption: 'The AI reads AGENTS-AIMP.md. Those rules keep the work inside the mirror and require the AI to complete AIMP_REPORT.md.' },
     { side: 'mirror', command: 'edit checkout/tax.py', output: ['+ TAX_RATE = Decimal(\"0.11\")', '+ subtotal + (subtotal * TAX_RATE)', '2 files changed'], mirrorCode: 'changed', caption: 'The AI changes the mirror and adds a test. The original is still untouched.' },
     { side: 'mirror', command: 'cat AIMP_REPORT.md', output: ['Status: ready', 'Summary: Added an 11% tax calculation and unit tests.', 'Tests: pytest checkout/tests/test_tax.py'], caption: 'The report is the handoff: summary, commit message, tests, and notes.' },
     { side: 'original', command: '/status', output: ['Original: clean', 'AI pending: true', 'Changed paths: 2'], caption: 'From the original, you can see that only the mirror has pending work.' },
@@ -27,7 +27,7 @@
     { side: 'original', command: '/sync', output: ['2 paths ready to apply', 'Original remains uncommitted'], caption: 'Sync prepares the reviewed batch and asks for explicit approval.' },
     { side: 'original', command: 'y', output: ['Applying approved files...', 'Checkpoint AI: 4f2a... (synced)'], originalCode: 'changed', caption: 'Only after confirmation does the change move into the original project.' },
     { side: 'original', command: '/status', output: ['Original: dirty (2 files)', 'AI pending: false', 'Original HEAD: unchanged'], caption: 'The original now contains your reviewed change, ready for your tests.' },
-    { side: 'mirror', command: 'git log -1', output: ['chore: Add checkout tax calculation (synced)', 'working tree clean'], caption: 'A local checkpoint keeps the AI-side trace. You commit the original yourself.' },
+    { side: 'mirror', command: 'git log -1', output: ['chore: Add checkout tax calculation (synced)', 'working tree clean', 'Local mirror commit created'], caption: 'Every approved sync creates a new local commit in the mirror. You commit the original yourself.' },
   ];
 
   const root = document.querySelector('[data-demo-section]') || document.querySelector('.demo-section');

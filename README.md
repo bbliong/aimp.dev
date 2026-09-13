@@ -77,7 +77,14 @@ Mirror folder [/home/alice/projects/shop-api-ai]: /home/alice/ai-mirrors/shop-ap
 Mirror: /home/alice/ai-mirrors/shop-api-ai
 ```
 
-AIMP creates an independent Git repository for `feature/checkout-tax`, copies only allowed files, and writes `AGENTS-AIMP.md` and `AIMP_REPORT.md`. The rules file tells the harness that this folder is the AI workspace and must not read the original project or credential stores.
+AIMP creates an independent Git repository for `feature/checkout-tax`, copies only allowed files, and writes two AIMP control files:
+
+| File | Role |
+| --- | --- |
+| `AGENTS-AIMP.md` | Instructions for the AI harness. It identifies this folder as the mirror, tells the AI to read and edit only this workspace, and asks it to complete `AIMP_REPORT.md` after each batch. |
+| `AIMP_REPORT.md` | The AI handoff. It contains the generated batch identity, Summary, Commit Message, Tests, Notes, and `Status: ready` for human review. |
+
+The rules file tells the harness that this folder is the AI workspace and must not read the original project or credential stores. `.aimpignore` remains the separate, user-managed policy for excluded paths.
 
 ### 3. Let any AI edit only the mirror
 
