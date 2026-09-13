@@ -70,7 +70,7 @@ export async function context(start) {
 export async function inspect(ctx, state) {
   const currentBranch = await branch(ctx.root), stateBranch = ctx.mode === 'mirror' ? currentBranch : await branch(ctx.original);
   const pair = state?.pairs?.[stateBranch];
-  const info = { mode: ctx.mode, original: ctx.original, mirror: pair?.mirror || null, branch: stateBranch, mirrorBranch: null, state: 'NOT_INITIALIZED', files: [], originalDirty: false, aiPending: false, committedPaths: 0 };
+  const info = { mode: ctx.mode, original: ctx.mode === 'mirror' ? null : ctx.original, mirror: pair?.mirror || null, branch: stateBranch, mirrorBranch: null, state: 'NOT_INITIALIZED', files: [], originalDirty: ctx.mode === 'mirror' ? null : false, aiPending: false, committedPaths: 0 };
   if (!pair) return info;
   info.mirrorBranch = await branch(pair.mirror);
   const active = state.pairs[info.mirrorBranch];
@@ -78,7 +78,7 @@ export async function inspect(ctx, state) {
   const result = await changes(pair.mirror, active, await policy(ctx.original));
   info.files = result.changes.map(e => `${e.kind}\t${JSON.stringify(e.path)}`);
   info.aiPending = result.changes.length > 0; info.committedPaths = result.committed;
-  info.originalDirty = (await status(ctx.original)).length > 0;
+  if (ctx.mode !== 'mirror') info.originalDirty = (await status(ctx.original)).length > 0;
   info.state = await loadJournal(ctx.original) ? 'RECOVERY_REQUIRED' : info.mirrorBranch !== stateBranch ? 'BRANCH_MISMATCH' : pair.baselineNeedsReview ? 'BASELINE_UNKNOWN' : info.aiPending ? 'AI_PENDING' : 'CLEAN';
   return info;
 }
@@ -142,7 +142,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       }
       if (name === '/status') {
         const info = await inspect(ctx, state);
-        emit(tokens.includes('--json') ? JSON.stringify(info) : `PROJECT\n  Original     ${info.original}\n  AI mirror    ${info.mirror || '—'}\n  Branch       ${info.branch}\n  AI branch    ${info.mirrorBranch || '—'}\n\nHEALTH\n  Original     ${info.originalDirty ? 'dirty' : 'clean'}\n  AI mirror    ${info.aiPending ? 'pending' : 'clean'}\n  Baseline     ${info.committedPaths} committed path(s)\n  State        ${info.state}\n\nCHANGES\n${info.files.length ? `  TYPE  PATH\n${info.files.map(line => `  ${line.replace('\t', '  ')}`).join('\n')}` : '  No changes'}`);
+        emit(tokens.includes('--json') ? JSON.stringify(info) : `PROJECT\n  Original     ${ctx.mode === 'mirror' ? '[hidden in AI mirror]' : info.original}\n  AI mirror    ${info.mirror || '—'}\n  Branch       ${info.branch}\n  AI branch    ${info.mirrorBranch || '—'}\n\nHEALTH\n  Original     ${info.originalDirty === null ? '[hidden]' : info.originalDirty ? 'dirty' : 'clean'}\n  AI mirror    ${info.aiPending ? 'pending' : 'clean'}\n  Baseline     ${info.committedPaths} committed path(s)\n  State        ${info.state}\n\nCHANGES\n${info.files.length ? `  TYPE  PATH\n${info.files.map(line => `  ${line.replace('\t', '  ')}`).join('\n')}` : '  No changes'}`);
         return { monitor: info };
       }
       if (name === '/doctor') {
