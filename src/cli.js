@@ -107,14 +107,19 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       }
       if (name === '/configure') {
         state ||= newState(ctx.original); const defaults = newState(ctx.original).config; state.config = { ...defaults, ...state.config, mirror: { ...defaults.mirror, ...state.config?.mirror }, sync: { ...defaults.sync, ...state.config?.sync }, autoSync: { ...defaults.autoSync, ...state.config?.autoSync }, testUrls: { ...defaults.testUrls, ...state.config?.testUrls }, sandbox: { ...defaults.sandbox, ...state.config?.sandbox }, watcher: { ...defaults.watcher, ...state.config?.watcher }, history: { ...defaults.history, ...state.config?.history }, ui: { ...defaults.ui, ...state.config?.ui }, safety: { ...defaults.safety, ...state.config?.safety } };
-        emit(`CONFIGURE\n\n[1] Mirror\n    Branch pairing: ${state.config.mirror.branchPairing}\n[2] Ignore policy\n    Managed in .aimpignore\n[3] Sync behavior\n    Overwrite confirmation: ${state.config.sync.confirmOverwrite}\n    Deletion confirmation: ${state.config.sync.confirmDeletion}\n[4] Auto sync trigger\n    Mode: ${state.config.autoSync.enabled ? 'request-enabled' : 'disabled'}\n[5] Test URLs\n    ${state.config.testUrls.enabled ? state.config.testUrls.allowlist.join(', ') || '(none)' : 'disabled'}\n[6] Sandbox integration\n    Required: ${state.config.sandbox.required} · Detect: ${state.config.sandbox.detect}\n[7] Watcher\n    Enabled: ${state.config.watcher.enabled} · Interval: ${state.config.watcher.intervalMs}ms\n[8] Reports & history\n    Enabled: ${state.config.history.enabled} · Retention: ${state.config.history.retention}\n[9] Language & interface\n    Language: ${language} · Color: ${state.config.ui.color}\n[10] Safety checks\n    Clean original required: ${state.config.safety.requireCleanOriginal}\n\n${t('Enter comma-separated test URLs (blank keeps current): ', 'Masukkan URL test dipisahkan koma (kosong mempertahankan): ')}`);
-        const urls = (await prompt('', { kind: 'text' })).trim();
-        if (urls) {
-          const parsed = urls.split(',').map(value => value.trim()).filter(Boolean);
-          for (const value of parsed) { let url; try { url = new URL(value); } catch { throw new Error(`Invalid test URL: ${value}`); } if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`Unsupported test URL protocol: ${url.protocol}`); }
-          state.config.testUrls.allowlist = parsed; state.config.testUrls.enabled = true;
-        }
-        if (await confirm(t('Enable request-based auto-sync trigger?', 'Aktifkan trigger auto-sync berbasis request?'))) { state.config.autoSync.enabled = true; state.config.autoSync.mode = 'request'; }
+        emit(`CURRENT SETTINGS\n${JSON.stringify(state.config, null, 2)}\n\n${t('Do you want to reconfigure? [y/N]', 'Apakah ingin mengatur ulang? [y/N]')}`);
+        if ((await prompt('', { kind: 'confirm' })).trim().toLowerCase() !== 'y') return {};
+        const ask = async (message, current) => { const value = (await prompt(`${message} [${current}] `, { kind: 'text' })).trim(); return value || current; };
+        const bool = value => ['y', 'yes', 'true', '1', 'on', 'enabled'].includes(String(value).toLowerCase());
+        const urls = await ask(t('Test URLs (comma-separated, blank keeps current)', 'URL test (pisahkan koma, kosong tidak mengubah)'), state.config.testUrls.allowlist.join(', '));
+        if (urls !== state.config.testUrls.allowlist.join(', ')) { const parsed = urls.split(',').map(value => value.trim()).filter(Boolean); for (const value of parsed) { const url = new URL(value); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`Unsupported test URL protocol: ${url.protocol}`); } state.config.testUrls.allowlist = parsed; state.config.testUrls.enabled = parsed.length > 0; }
+        state.config.autoSync.enabled = bool(await ask(t('Enable request-based auto-sync? (y/n)', 'Aktifkan auto-sync berbasis request? (y/n)'), state.config.autoSync.enabled ? 'y' : 'n'));
+        state.config.sync.confirmOverwrite = bool(await ask(t('Confirm overwrites? (y/n)', 'Konfirmasi overwrite? (y/n)'), state.config.sync.confirmOverwrite ? 'y' : 'n'));
+        state.config.sync.confirmDeletion = bool(await ask(t('Confirm deletions? (y/n)', 'Konfirmasi penghapusan? (y/n)'), state.config.sync.confirmDeletion ? 'y' : 'n'));
+        state.config.sandbox.required = bool(await ask(t('Require sandbox? (y/n)', 'Wajibkan sandbox? (y/n)'), state.config.sandbox.required ? 'y' : 'n'));
+        state.config.watcher.enabled = bool(await ask(t('Enable request watcher? (y/n)', 'Aktifkan watcher request? (y/n)'), state.config.watcher.enabled ? 'y' : 'n'));
+        state.config.history.retention = Number(await ask(t('History retention count', 'Jumlah history yang disimpan'), state.config.history.retention)); if (!Number.isInteger(state.config.history.retention) || state.config.history.retention < 1) throw new Error('History retention must be a positive integer.');
+        language = await ask(t('Language (en/id)', 'Bahasa (en/id)'), language); if (!['en', 'id'].includes(language)) throw new Error('Language must be en or id.'); state.language = language;
         await saveState(ctx.original, state);
         const activePair = state.pairs[await branch(ctx.original)]; if (activePair) await writeMetadata(activePair.mirror, state.projectId, activePair, state.config);
         emit(t('Configuration saved. AGENTS-AIMP.md updated for the mirror.', 'Konfigurasi tersimpan. AGENTS-AIMP.md di mirror diperbarui.')); return { config: state.config };
