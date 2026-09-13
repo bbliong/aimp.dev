@@ -14,13 +14,14 @@ import { requirePair, changes, preparePlan, readReport, transact, recover, valid
 import { initialize, recoverInitialization, useBranch } from './core/projects.js';
 
 const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
-export const originalCommands = ['/init', '/reinit', '/use', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/history', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
-export const mirrorCommands = ['/serialize', '/status', '/diff', '/get-summary', '/get-commit-message', '/history', '/language', '/help', '/exit'];
+export const originalCommands = ['/init', '/reinit', '/use', '/configure', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/history', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
+export const mirrorCommands = ['/serialize', '/configure', '/status', '/diff', '/get-summary', '/get-commit-message', '/history', '/language', '/help', '/exit'];
 export const safeText = value => String(value).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, c => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
 const descriptions = {
   '/init': ['Create an independent mirror for the current branch.', 'Buat mirror independen untuk branch aktif.'],
   '/reinit': ['Replace or relocate the shared mirror, retaining a backup.', 'Ganti atau pindahkan mirror bersama, dengan backup.'],
   '/use': ['Explicitly switch the mirror to the original branch.', 'Pindahkan mirror ke branch original secara eksplisit.'],
+  '/configure': ['Configure safe sync, test URL and history settings.', 'Atur sync aman, URL test, dan history.'],
   '/status': ['Inspect paths, branches, working changes, and pending commits.', 'Periksa folder, branch, perubahan file, dan commit pending.'],
   '/diff': ['Preview changed paths and text diff; no file writes.', 'Preview path dan diff teks; tanpa menulis file.'],
   '/sync': ['Review AI changes, apply to original, checkpoint AI only.', 'Review perubahan AI, terapkan ke original, checkpoint hanya AI.'],
@@ -94,7 +95,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
     if (name === '/exit' || name === '/quit') return { exit: true };
     if (name === '/help') { emit(allowed.map(k => `${k.padEnd(24)} ${descriptions[k][language === 'id' ? 1 : 0]}`).join('\n')); return {}; }
     if (!allowed.includes(name)) throw new Error(name === '/resolve' ? 'Automatic merge was removed. Review and edit files manually before /sync.' : `Command unavailable in ${ctx.mode} mode: ${name}`);
-    const mutating = ['/init', '/reinit', '/use', '/sync', '/sync-original-to-ai', '/serialize', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language'].includes(name) && !tokens.includes('--dry-run');
+    const mutating = ['/init', '/reinit', '/use', '/configure', '/sync', '/sync-original-to-ai', '/serialize', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language'].includes(name) && !tokens.includes('--dry-run');
     const run = async () => {
       // Always reload after taking the project lock.
       state = await loadState(ctx.original); language = state?.language || 'en';
@@ -103,6 +104,19 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       if (name === '/language') {
         if (!['en', 'id'].includes(tokens[0])) throw new Error('Usage: /language en|id');
         state ||= newState(ctx.original); state.language = tokens[0]; await saveState(ctx.original, state); emit(`Language: ${tokens[0]}`); return { language: tokens[0] };
+      }
+      if (name === '/configure') {
+        state ||= newState(ctx.original); state.config ||= newState(ctx.original).config;
+        const current = state.config.testUrls.allowlist.join(', ');
+        emit(`CONFIGURE\n\nAuto sync mode: ${state.config.autoSync.enabled ? 'request-enabled' : 'disabled'}\nTest URLs: ${state.config.testUrls.enabled ? 'enabled' : 'disabled'}\nAllowed URLs: ${current || '(none)'}\n\n${t('Enter comma-separated test URLs (blank keeps current): ', 'Masukkan URL test dipisahkan koma (kosong mempertahankan): ')}`);
+        const urls = (await prompt('', { kind: 'text' })).trim();
+        if (urls) {
+          const parsed = urls.split(',').map(value => value.trim()).filter(Boolean);
+          for (const value of parsed) { let url; try { url = new URL(value); } catch { throw new Error(`Invalid test URL: ${value}`); } if (!['http:', 'https:'].includes(url.protocol)) throw new Error(`Unsupported test URL protocol: ${url.protocol}`); }
+          state.config.testUrls.allowlist = parsed; state.config.testUrls.enabled = true;
+        }
+        if (await confirm(t('Enable request-based auto-sync trigger?', 'Aktifkan trigger auto-sync berbasis request?'))) { state.config.autoSync.enabled = true; state.config.autoSync.mode = 'request'; }
+        await saveState(ctx.original, state); emit(t('Configuration saved. AI may test only approved URLs.', 'Konfigurasi tersimpan. AI hanya boleh test URL yang disetujui.')); return { config: state.config };
       }
       if (name === '/migrate') {
         if (!state || state.schemaVersion === 3) { emit(t('State is current.', 'State sudah terbaru.')); return {}; }

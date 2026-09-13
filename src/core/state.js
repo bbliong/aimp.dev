@@ -22,7 +22,7 @@ export const saveState = (root, state) => atomicJson(stateFile(root), state);
 export const loadJournal = root => readJson(journalFile(root));
 export const saveJournal = (root, tx) => atomicJson(journalFile(root), tx);
 export async function clearJournal(root) { await fs.rm(journalFile(root), { force: true }); await syncDirectory(stateRoot()); }
-export function newState(root) { return { schemaVersion: 3, projectId: projectId(root), original: root, language: 'en', pairs: {}, history: [] }; }
+export function newState(root) { return { schemaVersion: 3, projectId: projectId(root), original: root, language: 'en', pairs: {}, history: [], config: { autoSync: { enabled: false, mode: 'request' }, testUrls: { enabled: false, allowlist: [], allowExternal: false }, history: { enabled: true, retention: 200 } } }; }
 export async function migrate(root, old) {
   if (old.schemaVersion === 3) return old;
   if (await loadJournal(root)) throw new Error('Legacy recovery journal exists. Preserve its backup; finish legacy recovery before migration.');
