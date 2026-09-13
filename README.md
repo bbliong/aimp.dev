@@ -4,6 +4,8 @@
 
 AIMP (AI Mirror Project) is a local CLI for working with AI in a separate mirror repository. The AI edits the mirror, the user reviews the report and changes, and AIMP applies the approved batch to the original project. AIMP does not call a model, run the application, create commits in the original project, or push to a remote.
 
+**Documentation:** <https://bbliong.github.io/aimp.dev/>
+
 ## Install
 
 ```bash

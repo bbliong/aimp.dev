@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="AIMP documentation: let AI touch only a local mirror of your codebase.">
+<title>AIMP · AI Mirror Project</title>
+<link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+<div class="shell">
+<header class="topbar">
+<a class="brand" href="#top"><span class="prompt">$</span> aimp<span class="cursor">_</span></a>
+<nav aria-label="Primary navigation"><a href="#quick-start">Quick start</a><a href="#commands">Commands</a><a href="#workflow">Workflow</a><a href="https://github.com/bbliong/aimp.dev">GitHub ↗</a></nav>
+</header>
+<main id="top">
+<section class="hero">
+<p class="eyebrow">AI MIRROR PROJECT · LOCAL CLI · BETA</p>
+<h1>Never trust AI with your codebase.<br><span>Let it touch only the mirror.</span></h1>
+<p class="lede">AIMP gives every AI harness its own local Git workspace. You review the exact paths, reports, and deletions before an approved batch crosses back into the original project.</p>
+<div class="hero-actions"><a class="button primary" href="#quick-start">Get started <span>→</span></a><a class="button" href="https://www.npmjs.com/package/@bbliong/aimp">View on npm ↗</a></div>
+<div class="install-line"><span class="prompt">$</span> npm install -g @bbliong/aimp@beta</div>
+</section>
+
+<section class="boundary section" aria-labelledby="boundary-title">
+<div class="section-heading"><p class="eyebrow">THE BOUNDARY</p><h2 id="boundary-title">AI works in a copy. You stay in control.</h2></div>
+<div class="boundary-grid">
+<article class="boundary-card original"><div class="card-top"><span class="dot"></span><span>ORIGINAL PROJECT</span><span class="status">protected</span></div><code>~/projects/shop-api</code><ul><li>Real credentials stay here</li><li>You run tests and the app here</li><li>You commit with your normal workflow</li></ul></article>
+<div class="bridge" aria-hidden="true"><span>review</span><b>⇄</b><span>sync</span></div>
+<article class="boundary-card mirror"><div class="card-top"><span class="dot"></span><span>AI MIRROR</span><span class="status">isolated</span></div><code>~/ai-mirrors/shop-api-ai</code><ul><li>AI edits this independent Git repo</li><li>Placeholders replace excluded files</li><li>Every sync creates a local checkpoint</li></ul></article>
+</div>
+<p class="muted note"><span class="accent">●</span> AIMP never calls a model, runs your application, creates a commit in the original, or pushes to a remote.</p>
+</section>
+
+<section id="quick-start" class="section" aria-labelledby="quick-title">
+<div class="section-heading"><p class="eyebrow">01 · QUICK START</p><h2 id="quick-title">From zero to a reviewed change</h2><p>Use any harness or AI tool. AIMP only manages the boundary and the Git trace.</p></div>
+<div class="steps">
+<article class="step"><div class="step-number">01</div><h3>Initialize from the original</h3><p>Run AIMP in the project you trust. Choose a separate mirror folder for the current branch.</p><pre><code>cd ~/projects/shop-api
+aimp
+$ /init
+Mirror folder: ~/ai-mirrors/shop-api-ai</code></pre></article>
+<article class="step"><div class="step-number">02</div><h3>Open the mirror with your AI</h3><p>The mirror receives <code>AGENTS-AIMP.md</code> and <code>AIMP_REPORT.md</code>. The rules tell the harness to stay inside this folder.</p><pre><code>cd ~/ai-mirrors/shop-api-ai
+codex                 # or any other harness</code></pre></article>
+<article class="step"><div class="step-number">03</div><h3>Review and sync deliberately</h3><p>Return to the original, inspect the paths and diff, then approve the batch. The original remains uncommitted.</p><pre><code>cd ~/projects/shop-api
+aimp
+$ /status
+$ /diff
+$ /sync</code></pre></article>
+</div>
+</section>
+
+<section id="commands" class="section" aria-labelledby="commands-title">
+<div class="section-heading"><p class="eyebrow">02 · COMMAND REFERENCE</p><h2 id="commands-title">A small, explicit command surface</h2><p>Commands are available according to where AIMP is running: the original project or its mirror.</p></div>
+<div class="table-wrap"><table><thead><tr><th>Command</th><th>Where</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>/init</code></td><td>Original</td><td>Create or select the mirror for the current branch.</td></tr>
+<tr><td><code>/reinit</code></td><td>Original</td><td>Replace or relocate a mirror after confirmation; keep a backup.</td></tr>
+<tr><td><code>/use</code></td><td>Original</td><td>Explicitly switch the mirror to the current original branch.</td></tr>
+<tr><td><code>/status</code></td><td>Both</td><td>Show paths, paired branches, dirty state, pending AI work, and changed paths.</td></tr>
+<tr><td><code>/diff</code></td><td>Both</td><td>Preview changed paths and text diffs without writing files.</td></tr>
+<tr><td><code>/sync</code></td><td>Original</td><td>Apply the reviewed AI batch to the original and checkpoint the mirror.</td></tr>
+<tr><td><code>/sync-original-to-ai</code></td><td>Original</td><td>Refresh the mirror from committed original changes.</td></tr>
+<tr><td><code>/serialize</code></td><td>Mirror</td><td>Adopt selected mirror changes as its local baseline without touching the original.</td></tr>
+<tr><td><code>/get-summary</code></td><td>Both</td><td>Read the ready summary from <code>AIMP_REPORT.md</code>.</td></tr>
+<tr><td><code>/get-commit-message</code></td><td>Both</td><td>Read the proposed commit subject from the report.</td></tr>
+<tr><td><code>/recover</code></td><td>Original</td><td>Resume an interrupted transaction.</td></tr>
+<tr><td><code>/recover rollback</code></td><td>Original</td><td>Restore the transaction backup instead of resuming.</td></tr>
+<tr><td><code>/doctor</code></td><td>Original</td><td>Check Git, state, pairing, repository shape, and recovery readiness.</td></tr>
+<tr><td><code>/migrate</code></td><td>Original</td><td>Back up and migrate legacy AIMP state.</td></tr>
+<tr><td><code>/adopt-baseline</code></td><td>Original</td><td>Acknowledge a reviewed legacy baseline.</td></tr>
+<tr><td><code>/adopt-policy</code></td><td>Original</td><td>Review and accept a changed <code>.aimpignore</code> policy.</td></tr>
+<tr><td><code>/list</code></td><td>Original</td><td>List branch pairs and mirror locations.</td></tr>
+<tr><td><code>/log</code></td><td>Original</td><td>Show local transaction receipts.</td></tr>
+<tr><td><code>/language en|id</code></td><td>Both</td><td>Change the interface language. New projects default to English.</td></tr>
+<tr><td><code>/help</code></td><td>Both</td><td>Show commands available in the current mode.</td></tr>
+<tr><td><code>/exit</code></td><td>Both</td><td>Exit and restore the previous terminal screen.</td></tr>
+</tbody></table></div>
+<p class="muted">Non-interactive examples: <code>aimp --plain status --json</code>, <code>aimp --plain sync --dry-run</code>, <code>aimp --version</code>.</p>
+</section>
+
+<section id="workflow" class="section" aria-labelledby="workflow-title">
+<div class="section-heading"><p class="eyebrow">03 · REAL WORKFLOW</p><h2 id="workflow-title">Example: add checkout tax to a Django app</h2><p>The original project is <code>~/projects/shop-api</code>; its feature branch is <code>feature/checkout-tax</code>.</p></div>
+<div class="terminal-block"><div class="terminal-head"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">shop-api · original</span></div><pre><code><span class="dim">$</span> cd ~/projects/shop-api
+<span class="dim">$</span> git switch -c feature/checkout-tax
+<span class="dim">$</span> cat &gt; .aimpignore &lt;&lt;'EOF'
+.env
+*.local
+config/production.yml
+EOF
+<span class="dim">$</span> aimp
+<span class="dim">$</span> /init
+Mirror folder [~/projects/shop-api-ai]: ~/ai-mirrors/shop-api-ai
+Mirror: /home/alice/ai-mirrors/shop-api-ai</code></pre></div>
+<div class="workflow-grid">
+<div><h3>Ask the AI for a focused batch</h3><p>Open only the mirror. Ask the AI to edit <code>checkout/tax.py</code> and add its tests. Real <code>.env</code> and production configuration never cross the policy boundary.</p><pre><code>$ cd ~/ai-mirrors/shop-api-ai
+$ codex
+# AI edits checkout/tax.py and checkout/tests/test_tax.py</code></pre></div>
+<div><h3>Complete the report</h3><p>The generated identity values must stay unchanged. The AI fills the four review sections and sets <code>Status: ready</code>.</p><pre><code>Mirror-ID: 7d8f17e5-4f2b-4e6a-8c10-5a1c3d7f9b21
+Branch: feature/checkout-tax
+Batch-ID: 2c41a9b8-0d6e-4f70-9c33-7b2e1a8d5f44
+Status: ready
+
+## Summary
+Added an 11% tax calculation and unit tests.
+
+## Commit Message
+Add checkout tax calculation
+
+## Tests
+pytest checkout/tests/test_tax.py
+
+## Notes
+Shipping remains exempt.</code></pre></div>
+</div>
+<div class="terminal-block result-block"><div class="terminal-head"><span class="terminal-dot red"></span><span class="terminal-dot yellow"></span><span class="terminal-dot green"></span><span class="terminal-title">review and apply</span></div><pre><code><span class="dim">$</span> cd ~/projects/shop-api
+<span class="dim">$</span> aimp
+<span class="dim">$</span> /status
+Original: clean
+AI pending: true
+
+<span class="dim">$</span> /diff
+modified  "checkout/tax.py"
+added     "checkout/tests/test_tax.py"
+
+<span class="dim">$</span> /sync
+Apply these files and create a local AI checkpoint? [y/N] y
+Checkpoint AI: 4f2a...</code></pre></div>
+<p class="callout"><strong>After sync:</strong> AIMP has copied the approved files to the original, left its HEAD and index under your control, and created a local mirror checkpoint ending in <code>(synced)</code>. Run tests and make the original commit yourself.</p>
+<pre><code>$ git diff
+$ pytest checkout/tests/test_tax.py
+$ git add checkout/tax.py checkout/tests/test_tax.py
+$ git commit -m "Add checkout tax calculation"</code></pre>
+</section>
+
+<section class="split section" aria-labelledby="policy-title">
+<div><p class="eyebrow">04 · POLICY</p><h2 id="policy-title">Keep secrets out with <code>.aimpignore</code></h2><p>The policy lives in the original project and applies in both directions, even to files already tracked by Git. AIMP copies, deletes, and applies only included paths.</p><pre><code># original/.aimpignore
+.env
+*.local
+private/
+!private/example.env</code></pre></div>
+<div><p class="eyebrow">REPORT CONTRACT</p><h2>Make every batch reviewable</h2><p><code>AIMP_REPORT.md</code> is the AI's handoff. It must contain the generated identity, a summary, a one-line commit message, test results, notes, and <code>Status: ready</code>.</p><ul class="checks"><li>Identity matches the active branch and batch</li><li>Changed paths are visible in <code>/diff</code></li><li>Deletions and overwritten original paths require confirmation</li><li>No original-project commit is created by AIMP</li></ul></div>
+</section>
+
+<section class="section" aria-labelledby="branch-title">
+<div class="section-heading"><p class="eyebrow">05 · BRANCHES &amp; RECOVERY</p><h2 id="branch-title">Explicit branch pairing. Recoverable operations.</h2></div>
+<div class="info-grid"><article><h3>One mirror, paired branches</h3><p>Each original branch maps to a branch with the same name in the mirror. Switch the original, then run <code>/use</code>. AIMP blocks a switch while the active mirror has pending work.</p></article><article><h3>Reverse refresh is manual</h3><p>After committing in the original, run <code>/sync-original-to-ai</code>. The original must be clean and the mirror must have no pending changes.</p></article><article><h3>Interrupted? Stop and recover</h3><p>Run <code>/doctor</code>, then <code>/recover</code> to resume or <code>/recover rollback</code> to restore the backup. Never delete AIMP state to silence a recovery warning.</p></article></div>
+</section>
+
+<section class="section install-section" aria-labelledby="install-title">
+<div class="section-heading"><p class="eyebrow">06 · INSTALLATION</p><h2 id="install-title">Install the beta</h2></div>
+<div class="install-grid"><pre><code>npm install -g @bbliong/aimp@beta
+aimp --version</code></pre><div><p><strong>Requirements:</strong> Node.js 22.14+, Git 2.34+, Linux or WSL2 on a Linux filesystem.</p><p>AIMP is a local boundary tool. It does not sandbox an AI process running as the same OS user; your OS permissions still matter.</p><p><a href="https://github.com/bbliong/aimp.dev/blob/main/README.md">Read the full README ↗</a> · <a href="https://github.com/bbliong/aimp.dev/issues">Report an issue ↗</a></p></div></div>
+</section>
+</main>
+<footer class="footer"><span>AIMP · AI Mirror Project</span><span>Local first · reviewed sync · no original commit</span></footer>
+</div>
+</body>
+</html>
