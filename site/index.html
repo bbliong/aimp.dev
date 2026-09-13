@@ -150,6 +150,10 @@ private/
 <div class="install-grid"><pre><code>npm install -g @bbliong/aimp@beta
 aimp --version</code></pre><div><p><strong>Requirements:</strong> Node.js 22.14+, Git 2.34+, Linux or WSL2 on a Linux filesystem.</p><p>AIMP is a local boundary tool. It does not sandbox an AI process running as the same OS user; your OS permissions still matter.</p><p><a href="https://github.com/bbliong/aimp.dev/blob/main/README.md">Read the full README ↗</a> · <a href="https://github.com/bbliong/aimp.dev/issues">Report an issue ↗</a></p></div></div>
 </section>
+<section class="section" aria-labelledby="pages-title">
+<div class="section-heading"><p class="eyebrow">07 · GITHUB PAGES</p><h2 id="pages-title">Publish this documentation automatically</h2><p>Push the repository to GitHub, then choose <strong>Settings → Pages → GitHub Actions</strong> once. The <code>Deploy documentation</code> workflow publishes the <code>site/</code> folder on every push to <code>main</code>.</p></div>
+<div class="callout"><strong>If the workflow says “Get Pages site failed”:</strong> open the repository's Pages settings, select <strong>GitHub Actions</strong> as the source, save, and rerun the workflow. The Node 20 deprecation notice is informational; this workflow uses the current Node runtime provided by GitHub Actions.</div>
+</section>
 </main>
 <footer class="footer"><span>AIMP · AI Mirror Project</span><span>Local first · reviewed sync · no original commit</span></footer>
 </div>
