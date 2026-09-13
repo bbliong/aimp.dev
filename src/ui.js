@@ -6,6 +6,15 @@ import { createSession, loadState, pathCompleter, localized, safeText } from './
 import { branch } from './core/git.js';
 import { wrapRows, decodeMouse } from './ui-utils.js';
 const h = React.createElement;
+function lineColor(line) {
+  if (line.startsWith('Error:')) return 'red';
+  if (line.startsWith('$ ')) return 'cyan';
+  if (/^(State: CLEAN|Original: clean|AI mirror: clean|No changes)/.test(line)) return 'green';
+  if (/^(State:|Original dirty: yes|AI pending: yes|Warning:)/.test(line)) return 'yellow';
+  if (/^(\s*[MADRCU!?]|[0-9]+\.\s+)/.test(line)) return line.includes('D') ? 'red' : line.includes('A') ? 'green' : 'yellow';
+  if (/^(Branch:|AI copy:|AI branch:|Mirror:|Checkpoint AI:)/.test(line)) return 'blue';
+  return undefined;
+}
 
 function App({ ctx, profile, onScroll, controller }) {
   const { exit } = useApp(), { stdout: screen } = useStdout();
@@ -86,7 +95,7 @@ function App({ ctx, profile, onScroll, controller }) {
   const left = h(Box, { width: leftWidth, flexDirection: 'column', height: rows },
     ...header.slice(0, headerRows - 1).map((line, i) => h(Text, { key: `h${i}`, color: i < logo.length ? 'green' : undefined, wrap: 'truncate-end' }, safeText(line))),
     h(Text, { dimColor: true, wrap: 'truncate-end' }, pending ? t('Waiting for input', 'Menunggu input') : busy ? t('Processing… Ctrl+C stops safely', 'Memproses… Ctrl+C berhenti aman') : t('Ready · Ctrl+C exit', 'Siap · Ctrl+C keluar')),
-    h(Box, { flexDirection: 'column', height: chatHeight, overflow: 'hidden' }, ...visible.map((line, i) => h(Text, { key: i }, line))),
+    h(Box, { flexDirection: 'column', height: chatHeight, overflow: 'hidden' }, ...visible.map((line, i) => h(Text, { key: i, color: lineColor(line) }, line))),
     h(Text, { dimColor: true, wrap: 'truncate-end' }, `↑↓ PgUp/PgDn Home/End · ${scroll ? `↑ ${scroll}` : t('latest', 'terbaru')}`),
     ...suggestionRows.map((line, i) => h(Text, { key: `s${i}`, color: 'yellow' }, line)),
     h(Text, { dimColor: true, wrap: 'truncate-end' }, t('Type / · Tab/Shift+Tab selects commands or paths', 'Ketik / · Tab/Shift+Tab pilih command atau path')),
@@ -94,7 +103,7 @@ function App({ ctx, profile, onScroll, controller }) {
   );
   const right = showMonitor ? h(Box, { width: width - leftWidth, flexDirection: 'column', borderStyle: 'round', height: Math.min(rows, 18), paddingX: 1 },
     h(Text, { color: 'blue' }, '$ status --snapshot'),
-    ...wrapRows([monitor.state, `Original dirty: ${monitor.originalDirty}`, `AI pending: ${monitor.aiPending}`, `Branch: ${monitor.mirrorBranch}`, `Path: ${monitor.mirror}`, ...monitor.files], width - leftWidth - 4).slice(0, 14).map((line, i) => h(Text, { key: i }, safeText(line)))
+    ...wrapRows([monitor.state, `Original dirty: ${monitor.originalDirty}`, `AI pending: ${monitor.aiPending}`, `Branch: ${monitor.mirrorBranch}`, `Path: ${monitor.mirror}`, ...monitor.files], width - leftWidth - 4).slice(0, 14).map((line, i) => h(Text, { key: i, color: lineColor(line) }, safeText(line)))
   ) : null;
   return h(Box, { flexDirection: 'row', height: rows, width }, left, right);
 }

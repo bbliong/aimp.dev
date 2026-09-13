@@ -9,6 +9,23 @@ import { stateRoot, saveJournal, loadJournal, clearJournal, saveState } from './
 
 export const REPORT = 'AIMP_REPORT.md';
 export const RULES = 'AGENTS-AIMP.md';
+function reportArchivePath(branchName, id) {
+  const safeBranch = branchName.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^\.+|\.+$/g, '') || 'default';
+  return path.join(stateRoot(), 'reports', safeBranch, `${new Date().toISOString().replace(/[:.]/g, '-')}_${id}.md`);
+}
+async function archiveReport(mirror, branchName, id) {
+  const file = path.join(mirror, REPORT);
+  try {
+    const content = await fs.readFile(file);
+    const target = reportArchivePath(branchName, id);
+    await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
+    await fs.writeFile(target, content, { mode: 0o600, flag: 'wx' });
+    return target;
+  } catch (error) {
+    if (error.code === 'ENOENT') return null;
+    throw error;
+  }
+}
 export async function validateRepository(root) {
   if (await canonical(root) !== root || !(await present(path.join(root, '.git')))?.isDirectory()) throw new Error('A regular repository with a canonical root is required.');
   for (const name of ['rebase-apply', 'rebase-merge', 'sequencer', 'worktrees', 'objects/info/alternates']) if (await present(path.join(root, '.git', name))) throw new Error(`Unsupported Git repository state: ${name}`);
@@ -204,6 +221,7 @@ async function finalize(tx, dir, fault = async () => {}) {
   await fault('REF_UPDATED'); await replaceIndex(tx.mirror, tx, dir);
   tx.stage = 'AI_CHECKPOINTED'; await saveJournal(tx.root, tx); await fault(tx.stage);
   await saveState(tx.root, tx.nextState); await fault('STATE_SAVED');
+  if (tx.direction === 'ai-to-original') await archiveReport(tx.mirror, tx.branch, tx.id);
   await writeMetadata(tx.mirror, tx.nextState.projectId, tx.nextState.pairs[tx.branch]);
   tx.stage = 'FINALIZED'; await saveJournal(tx.root, tx); await fault(tx.stage);
   await clearJournal(tx.root);

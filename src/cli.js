@@ -14,8 +14,8 @@ import { requirePair, changes, preparePlan, readReport, transact, recover, valid
 import { initialize, recoverInitialization, useBranch } from './core/projects.js';
 
 const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
-export const originalCommands = ['/init', '/reinit', '/use', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
-export const mirrorCommands = ['/serialize', '/status', '/diff', '/get-summary', '/get-commit-message', '/language', '/help', '/exit'];
+export const originalCommands = ['/init', '/reinit', '/use', '/status', '/diff', '/sync', '/sync-original-to-ai', '/get-summary', '/get-commit-message', '/list', '/log', '/history', '/doctor', '/recover', '/migrate', '/adopt-baseline', '/adopt-policy', '/language', '/help', '/exit'];
+export const mirrorCommands = ['/serialize', '/status', '/diff', '/get-summary', '/get-commit-message', '/history', '/language', '/help', '/exit'];
 export const safeText = value => String(value).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, c => `\\x${c.charCodeAt(0).toString(16).padStart(2, '0')}`);
 const descriptions = {
   '/init': ['Create an independent mirror for the current branch.', 'Buat mirror independen untuk branch aktif.'],
@@ -35,6 +35,7 @@ const descriptions = {
   '/get-commit-message': ['Read the proposed commit subject.', 'Baca usulan pesan commit.'],
   '/list': ['List branch pairs and mirror locations.', 'Daftar pasangan branch dan lokasi mirror.'],
   '/log': ['Show recent transaction receipts.', 'Tampilkan riwayat transaksi terbaru.'],
+  '/history': ['List archived AI reports for this project.', 'Tampilkan arsip laporan AI project ini.'],
   '/language': ['Set language: /language en|id.', 'Atur bahasa: /language en|id.'],
   '/help': ['Show commands available in this workspace.', 'Tampilkan command yang tersedia di workspace ini.'],
   '/exit': ['Exit and restore the previous terminal screen.', 'Keluar dan kembalikan layar terminal sebelumnya.'],
@@ -151,6 +152,14 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
       }
       if (name === '/list') { emit(Object.entries(state?.pairs || {}).map(([b, p]) => `${b}\t${p.mirror}`).join('\n') || t('No mirrors.', 'Belum ada mirror.')); return {}; }
       if (name === '/log') { emit(JSON.stringify(state?.history || [], null, 2)); return {}; }
+      if (name === '/history') {
+        const pair = state?.pairs?.[await branch(ctx.original)];
+        if (!pair) throw new Error('Branch is not initialized. Run /init.');
+        const safeBranch = pair.branch.replace(/[^a-zA-Z0-9._-]+/g, '_').replace(/^\.+|\.+$/g, '') || 'default';
+        const dir = path.join(stateRoot(), 'reports', safeBranch);
+        let entries = []; try { entries = (await fs.readdir(dir)).sort().reverse(); } catch (error) { if (error.code !== 'ENOENT') throw error; }
+        emit(entries.join('\n') || t('No archived reports.', 'Belum ada laporan yang diarsipkan.')); return {};
+      }
       if (name === '/use') { const pair = await useBranch(ctx.original, state); emit(`${pair.branch} → ${pair.mirror}`); return {}; }
       const b = await branch(ctx.root), pair = state?.pairs?.[b];
       if (!pair) throw new Error('Branch is not initialized. Run /init.');
