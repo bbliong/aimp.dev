@@ -50,7 +50,7 @@ export async function initialize(root, state, target, { confirm, replacing = fal
     await git(stage, ['update-ref', `refs/heads/${name}`, commit]); await git(stage, ['read-tree', commit]);
     const pair = { branch: name, mirror: target, baselineAi: commit, baselineOriginal: originalHead,
       policyHash: rules.hash, batch: crypto.randomUUID(), acknowledgements: {}, applied: {} };
-    await writeMetadata(stage, state.projectId, pair);
+    await writeMetadata(stage, state.projectId, pair, state.config);
     await fs.writeFile(path.join(stage, '.git/info/exclude'), '/AIMP_REPORT.md\n/AGENTS-AIMP.md\n/.aimpignore\n');
     if (rules.content.length) await fs.writeFile(path.join(stage, '.aimpignore'), rules.content);
     if (existing && !replacing) {
@@ -59,7 +59,7 @@ export async function initialize(root, state, target, { confirm, replacing = fal
       await git(existing.mirror, ['fetch', '--quiet', '--no-tags', stage, `refs/heads/${name}`]);
       await git(existing.mirror, ['switch', '-c', name, 'FETCH_HEAD']);
       pair.mirror = existing.mirror;
-      await writeMetadata(existing.mirror, state.projectId, pair);
+      await writeMetadata(existing.mirror, state.projectId, pair, state.config);
       state.pairs[name] = pair; await saveState(root, state); return pair;
     }
     if (existing && replacing) {
@@ -110,6 +110,6 @@ export async function useBranch(root, state) {
   if ((await changes(pair.mirror, active, await policy(root))).changes.length) throw new Error('Mirror has pending changes, including commits. Finish that branch first.');
   await git(pair.mirror, ['switch', name]);
   await safePath(pair.mirror, 'AIMP_REPORT.md');
-  await writeMetadata(pair.mirror, state.projectId, pair);
+  await writeMetadata(pair.mirror, state.projectId, pair, state.config);
   return pair;
 }

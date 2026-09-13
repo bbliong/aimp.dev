@@ -65,10 +65,10 @@ export async function changes(root, pair, rules) {
 export function reportTemplate(id, name, batch) {
   return `Mirror-ID: ${id}\nBranch: ${name}\nBatch-ID: ${batch}\nStatus: draft\n\n## Summary\n<!-- Describe the changes. -->\n\n## Commit Message\n<!-- One-line subject. -->\n\n## Tests\n<!-- Commands and results, or Not run: reason. -->\n\n## Notes\n<!-- Limitations, or None. -->\n`;
 }
-export async function writeMetadata(mirror, id, pair) {
+export async function writeMetadata(mirror, id, pair, config = {}) {
   const values = {
     [REPORT]: reportTemplate(id, pair.branch, pair.batch),
-    [RULES]: `# AIMP workspace\n\nAIMP (AI Mirror Project) is a local tool for reviewing and manually synchronizing a separate AI workspace. This is the mirror for branch ${pair.branch}, not the original project.\n\n- Read and edit only this workspace. Do not access the original, parent directories, or credential stores.\n- These instructions are advisory, not an OS sandbox. Load this file manually if your harness does not discover it.\n- The user runs the original application and shares errors manually.\n- Do not push, add remotes, switch branches, reset history, or run synchronization commands.\n- Keep user placeholders intact. AIMP does not sanitize credentials automatically.\n- Complete AIMP_REPORT.md and set Status: ready after each batch. Report tests honestly.\n`,
+    [RULES]: `# AIMP workspace\n\nAIMP (AI Mirror Project) is a local tool for reviewing and manually synchronizing a separate AI workspace. This is the mirror for branch ${pair.branch}, not the original project.\n\n- Read and edit only this workspace. Do not access the original, parent directories, or credential stores.\n- These instructions are advisory, not an OS sandbox. Load this file manually if your harness does not discover it.\n- The user runs the original application and shares errors manually.\n- Do not push, add remotes, switch branches, reset history, or run synchronization commands.\n- Keep user placeholders intact. AIMP does not sanitize credentials automatically.\n- Complete AIMP_REPORT.md and set Status: ready after each batch. Report tests honestly.\n- Auto-sync mode: ${config.autoSync?.enabled ? 'request enabled; create a sync request only' : 'disabled; wait for the user to run /sync'}.\n- Approved test URLs: ${config.testUrls?.enabled && config.testUrls.allowlist?.length ? config.testUrls.allowlist.join(', ') : 'none configured'}. Do not access other URLs.\n`,
   };
   for (const [rel, content] of Object.entries(values)) {
     const target = await safePath(mirror, rel), tmp = `${target}.${crypto.randomUUID()}.tmp`;
@@ -222,7 +222,7 @@ async function finalize(tx, dir, fault = async () => {}) {
   tx.stage = 'AI_CHECKPOINTED'; await saveJournal(tx.root, tx); await fault(tx.stage);
   await saveState(tx.root, tx.nextState); await fault('STATE_SAVED');
   if (tx.direction === 'ai-to-original') await archiveReport(tx.mirror, tx.branch, tx.id);
-  await writeMetadata(tx.mirror, tx.nextState.projectId, tx.nextState.pairs[tx.branch]);
+  await writeMetadata(tx.mirror, tx.nextState.projectId, tx.nextState.pairs[tx.branch], tx.nextState.config);
   tx.stage = 'FINALIZED'; await saveJournal(tx.root, tx); await fault(tx.stage);
   await clearJournal(tx.root);
   // Retain only a compact receipt and any history archive after successful finalization.

@@ -10,7 +10,7 @@ import { git, text, branch, status, metrics, names } from './core/git.js';
 import { canonical } from './core/files.js';
 import { loadState, saveState, stateRoot, findMirror, withLock, loadJournal, migrate, newState } from './core/state.js';
 import { policy } from './core/policy.js';
-import { requirePair, changes, preparePlan, readReport, transact, recover, validateRepository } from './core/engine.js';
+import { requirePair, changes, preparePlan, readReport, transact, recover, validateRepository, writeMetadata } from './core/engine.js';
 import { initialize, recoverInitialization, useBranch } from './core/projects.js';
 
 const pkg = JSON.parse(await fs.readFile(new URL('../package.json', import.meta.url), 'utf8'));
@@ -106,9 +106,8 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
         state ||= newState(ctx.original); state.language = tokens[0]; await saveState(ctx.original, state); emit(`Language: ${tokens[0]}`); return { language: tokens[0] };
       }
       if (name === '/configure') {
-        state ||= newState(ctx.original); state.config ||= newState(ctx.original).config;
-        const current = state.config.testUrls.allowlist.join(', ');
-        emit(`CONFIGURE\n\nAuto sync mode: ${state.config.autoSync.enabled ? 'request-enabled' : 'disabled'}\nTest URLs: ${state.config.testUrls.enabled ? 'enabled' : 'disabled'}\nAllowed URLs: ${current || '(none)'}\n\n${t('Enter comma-separated test URLs (blank keeps current): ', 'Masukkan URL test dipisahkan koma (kosong mempertahankan): ')}`);
+        state ||= newState(ctx.original); const defaults = newState(ctx.original).config; state.config = { ...defaults, ...state.config, mirror: { ...defaults.mirror, ...state.config?.mirror }, sync: { ...defaults.sync, ...state.config?.sync }, autoSync: { ...defaults.autoSync, ...state.config?.autoSync }, testUrls: { ...defaults.testUrls, ...state.config?.testUrls }, sandbox: { ...defaults.sandbox, ...state.config?.sandbox }, watcher: { ...defaults.watcher, ...state.config?.watcher }, history: { ...defaults.history, ...state.config?.history }, ui: { ...defaults.ui, ...state.config?.ui }, safety: { ...defaults.safety, ...state.config?.safety } };
+        emit(`CONFIGURE\n\n[1] Mirror\n    Branch pairing: ${state.config.mirror.branchPairing}\n[2] Ignore policy\n    Managed in .aimpignore\n[3] Sync behavior\n    Overwrite confirmation: ${state.config.sync.confirmOverwrite}\n    Deletion confirmation: ${state.config.sync.confirmDeletion}\n[4] Auto sync trigger\n    Mode: ${state.config.autoSync.enabled ? 'request-enabled' : 'disabled'}\n[5] Test URLs\n    ${state.config.testUrls.enabled ? state.config.testUrls.allowlist.join(', ') || '(none)' : 'disabled'}\n[6] Sandbox integration\n    Required: ${state.config.sandbox.required} · Detect: ${state.config.sandbox.detect}\n[7] Watcher\n    Enabled: ${state.config.watcher.enabled} · Interval: ${state.config.watcher.intervalMs}ms\n[8] Reports & history\n    Enabled: ${state.config.history.enabled} · Retention: ${state.config.history.retention}\n[9] Language & interface\n    Language: ${language} · Color: ${state.config.ui.color}\n[10] Safety checks\n    Clean original required: ${state.config.safety.requireCleanOriginal}\n\n${t('Enter comma-separated test URLs (blank keeps current): ', 'Masukkan URL test dipisahkan koma (kosong mempertahankan): ')}`);
         const urls = (await prompt('', { kind: 'text' })).trim();
         if (urls) {
           const parsed = urls.split(',').map(value => value.trim()).filter(Boolean);
@@ -116,7 +115,9 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
           state.config.testUrls.allowlist = parsed; state.config.testUrls.enabled = true;
         }
         if (await confirm(t('Enable request-based auto-sync trigger?', 'Aktifkan trigger auto-sync berbasis request?'))) { state.config.autoSync.enabled = true; state.config.autoSync.mode = 'request'; }
-        await saveState(ctx.original, state); emit(t('Configuration saved. AI may test only approved URLs.', 'Konfigurasi tersimpan. AI hanya boleh test URL yang disetujui.')); return { config: state.config };
+        await saveState(ctx.original, state);
+        const activePair = state.pairs[await branch(ctx.original)]; if (activePair) await writeMetadata(activePair.mirror, state.projectId, activePair, state.config);
+        emit(t('Configuration saved. AGENTS-AIMP.md updated for the mirror.', 'Konfigurasi tersimpan. AGENTS-AIMP.md di mirror diperbarui.')); return { config: state.config };
       }
       if (name === '/migrate') {
         if (!state || state.schemaVersion === 3) { emit(t('State is current.', 'State sudah terbaru.')); return {}; }
