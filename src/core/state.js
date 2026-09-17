@@ -49,7 +49,7 @@ async function alive(owner) {
 }
 export async function withLock(root, operation) {
   await fs.mkdir(stateRoot(), { recursive: true, mode: 0o700 });
-  if (await canonical(stateRoot()) !== path.resolve(stateRoot())) throw new Error('State directory must not contain symlinks.');
+  if (process.platform !== 'darwin' && await canonical(stateRoot()) !== path.resolve(stateRoot())) throw new Error('State directory must not contain symlinks.');
   const lock = path.join(stateRoot(), `${projectId(root)}.lock`), token = crypto.randomUUID();
   async function acquire() {
     try { await fs.mkdir(lock); }
