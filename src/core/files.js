@@ -34,9 +34,9 @@ export async function canonical(target) {
 }
 export const overlaps = (a, b) => a === b || a.startsWith(b + path.sep) || b.startsWith(a + path.sep);
 export async function mirrorTarget(original, requested, stateRoot) {
-  const target = await canonical(requested), home = await fs.realpath(os.homedir());
-  if (overlaps(original, target) || overlaps(stateRoot, target) || target === '/' || target === home || home.startsWith(target + path.sep)) throw new Error('Mirror target overlaps a protected directory.');
-  return target;
+  const target = await canonical(requested), originalCanonical = await canonical(original), stateCanonical = await canonical(stateRoot), home = await fs.realpath(os.homedir());
+  if (overlaps(originalCanonical, target) || overlaps(stateCanonical, target) || target === '/' || target === home || home.startsWith(target + path.sep)) throw new Error('Mirror target overlaps a protected directory.');
+  return process.platform === 'darwin' ? path.resolve(requested) : target;
 }
 export async function fingerprint(root, rel) {
   const full = await safePath(root, rel), st = await present(full);
