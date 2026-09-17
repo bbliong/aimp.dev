@@ -177,7 +177,7 @@ export function createSession(ctx, { output = console.log, prompt = async () => 
           }
         }
         const created = await initialize(ctx.original, state, destination, { confirm, replacing: name === '/reinit', signal });
-        if (created) { emit(`Mirror: ${created.mirror}${created.backup ? `\nBackup: ${created.backup}` : ''}`); if (name === '/init' && await confirm(t('Open advanced configuration now?', 'Buka konfigurasi lanjutan sekarang?'))) postConfigure = true; }
+        if (created) { emit(`Mirror: ${created.mirror}${created.backup ? `\nBackup: ${created.backup}` : ''}`); if (name === '/init' && stdin.isTTY && await confirm(t('Open advanced configuration now?', 'Buka konfigurasi lanjutan sekarang?'))) postConfigure = true; }
         return {};
       }
       if (name === '/status') {
