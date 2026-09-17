@@ -27,7 +27,7 @@ async function archiveReport(mirror, branchName, id) {
   }
 }
 export async function validateRepository(root) {
-  if (await canonical(root) !== root || !(await present(path.join(root, '.git')))?.isDirectory()) throw new Error('A regular repository with a canonical root is required.');
+  if ((process.platform !== 'darwin' && await canonical(root) !== root) || !(await present(path.join(root, '.git')))?.isDirectory()) throw new Error('A regular repository with a canonical root is required.');
   for (const name of ['rebase-apply', 'rebase-merge', 'sequencer', 'worktrees', 'objects/info/alternates']) if (await present(path.join(root, '.git', name))) throw new Error(`Unsupported Git repository state: ${name}`);
   await guardRepo(root);
 }
