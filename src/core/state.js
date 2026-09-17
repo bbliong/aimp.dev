@@ -37,6 +37,7 @@ export async function migrate(root, old) {
   return { state: next, backup };
 }
 async function processIdentity(pid) {
+  if (process.platform !== 'linux') return null;
   try { const stat = await fs.readFile(`/proc/${pid}/stat`, 'utf8'); return stat.slice(stat.lastIndexOf(')') + 2).split(' ')[19]; }
   catch { return null; }
 }

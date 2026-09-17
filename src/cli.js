@@ -65,7 +65,7 @@ export async function pathCompleter(value) {
   catch { return [[], value]; }
 }
 export async function context(start) {
-  if (process.platform !== 'linux') throw new Error('This beta supports Linux and WSL2 Linux filesystems.');
+  if (!['linux', 'darwin'].includes(process.platform)) throw new Error('AIMP supports Linux, macOS, and WSL2 Linux filesystems.');
   const root = await canonical(await text(start, ['rev-parse', '--show-toplevel']));
   const original = await findMirror(root);
   return { root, original: original || root, mode: original ? 'mirror' : 'original' };

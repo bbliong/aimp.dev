@@ -18,7 +18,7 @@ cd /path/to/original-project
 aimp
 ```
 
-Node.js 22.14+ and Git 2.34+ are required. Linux and WSL2 on a Linux filesystem are supported in this beta. For terminals without the TUI, use `aimp --plain status --json`.
+Node.js 22.14+ and Git 2.34+ are required. Linux, macOS, and WSL2 on a Linux filesystem are supported in this beta. For terminals without the TUI, use `aimp --plain status --json`.
 
 ## Commands
 
